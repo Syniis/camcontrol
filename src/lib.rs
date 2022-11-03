@@ -47,25 +47,25 @@ fn drag(
 
     let delta = cursor_pos - last_pos.unwrap_or(cursor_pos);
 
-    let (cam, mut transform, projection) = query.single_mut();
+    for (cam, mut transform, projection) in query.iter_mut() {
+        if cam.active && mouse_buttons.pressed(MouseButton::Left) {
+            let scaling = Vec2::new(
+                window.width() / (projection.right - projection.left),
+                window.height() / (projection.top - projection.bottom),
+            ) * projection.scale;
 
-    if cam.active && mouse_buttons.pressed(MouseButton::Left) {
-        let scaling = Vec2::new(
-            window.width() / (projection.right - projection.left),
-            window.height() / (projection.top - projection.bottom),
-        ) * projection.scale;
+            let mut new_transform = transform.translation.truncate() - (delta * scaling);
 
-        let mut new_transform = transform.translation.truncate() - (delta * scaling);
+            if let Some((min, max)) = cam.boundary {
+                let border_x = (window.width() / 2.0) * scaling.x;
+                let border_y = (window.height() / 2.0) * scaling.y;
+                let border = Vec2::new(border_x, border_y);
 
-        if let Some((min, max)) = cam.boundary {
-            let border_x = (window.width() / 2.0) * scaling.x;
-            let border_y = (window.height() / 2.0) * scaling.y;
-            let border = Vec2::new(border_x, border_y);
+                new_transform = new_transform.clamp(min + border, max - border);
+            }
 
-            new_transform = new_transform.clamp(min + border, max - border);
+            transform.translation = new_transform.extend(transform.translation.z);
         }
-
-        transform.translation = new_transform.extend(transform.translation.z);
     }
     *last_pos = Some(cursor_pos);
 }
@@ -90,16 +90,18 @@ fn zoom(
         return;
     }
 
-    let (cam, mut transform, mut projection) = query.single_mut();
-    if cam.active {
-        let old_scale = projection.scale;
-        projection.scale = projection.scale * (1.0 - scroll_amount * 0.1);
+    for (cam, mut transform, mut projection) in query.iter_mut() {
+        if cam.active {
+            let old_scale = projection.scale;
+            projection.scale = projection.scale * (1.0 - scroll_amount * 0.1);
+        }
     }
 }
 
 fn toggle_focus(mut query: Query<&mut CameraControl>, keys: Res<Input<KeyCode>>) {
-    let mut cam = query.single_mut();
-    if keys.just_pressed(KeyCode::Space) {
-        cam.active = !cam.active;
+    for mut cam in query.iter_mut() {
+        if keys.just_pressed(KeyCode::Space) {
+            cam.active = !cam.active;
+        }
     }
 }
