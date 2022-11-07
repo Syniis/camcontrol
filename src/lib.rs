@@ -27,7 +27,6 @@ impl Default for CameraControl {
 impl Plugin for CameraControlPlugin {
     fn build(&self, app: &mut App) {
         app.add_system(drag.label(CameraControlLabel))
-            .add_system(toggle_focus.label(CameraControlLabel))
             .add_system(zoom.label(CameraControlLabel));
     }
 }
@@ -94,14 +93,6 @@ fn zoom(
         if cam.active {
             let old_scale = projection.scale;
             projection.scale = projection.scale * (1.0 - scroll_amount * 0.1);
-        }
-    }
-}
-
-fn toggle_focus(mut query: Query<&mut CameraControl>, keys: Res<Input<KeyCode>>) {
-    for mut cam in query.iter_mut() {
-        if keys.just_pressed(KeyCode::Space) {
-            cam.active = !cam.active;
         }
     }
 }
